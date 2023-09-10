@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addMember = void 0;
+exports.removeMember = exports.addMember = void 0;
 const db_1 = require("../utils/db");
 const snowflake_1 = require("../utils/snowflake");
 const addMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -59,3 +59,31 @@ const addMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     });
 });
 exports.addMember = addMember;
+const removeMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = req.params;
+    const db = (0, db_1.getDatabase)();
+    if (!db) {
+        return res.status(500).json({ success: false, error: 'Database connection error' });
+    }
+    const memberCollection = db.collection('member');
+    const usersCollection = db.collection('users');
+    const communitiesCollection = db.collection('communities');
+    const checkIfMemberExists = yield memberCollection.findOne({ id: userId });
+    console.log(checkIfMemberExists);
+    if (!checkIfMemberExists) {
+        return res.status(409).json({ success: false, error: 'Member doesnt exists' });
+    }
+    const community = yield communitiesCollection.findOne({ id: checkIfMemberExists.community });
+    if (!community) {
+        return res.status(404).json({ success: false, error: 'Community not found' });
+    }
+    if (checkIfMemberExists.id !== community.owner) {
+        return res.status(401).json({ success: false, error: 'NOT_ALLOWED_ACCESS' });
+    }
+    const result = yield memberCollection.deleteOne({ id: userId });
+    if (!result.deletedCount) {
+        return res.status(500).json({ success: false, error: "Something went wrong" });
+    }
+    res.status(200).json({ success: true, content: { data: result.deletedCount } });
+});
+exports.removeMember = removeMember;

@@ -31,4 +31,5 @@ const memberController = __importStar(require("../controllers/member.controller"
 const jwt_1 = require("../utils/jwt");
 const router = express_1.default.Router();
 router.post('/', jwt_1.verifyJWTMiddleware, memberController.addMember);
+router.delete('/:id', jwt_1.verifyJWTMiddleware, memberController.removeMember);
 exports.default = router;

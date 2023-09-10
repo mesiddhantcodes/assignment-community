@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllCommunityMembers = exports.getAllcommunity = exports.community = void 0;
+exports.getOwnedCommunity = exports.getAllCommunityMembers = exports.getAllcommunity = exports.community = void 0;
 const db_1 = require("../utils/db");
 const Community_1 = require("../interfaces/Community");
 const slug_1 = require("../utils/slug");
@@ -77,8 +77,6 @@ const getAllcommunity = (req, res) => __awaiter(void 0, void 0, void 0, function
         const page = 1;
         const skip = (page - 1) * pageSize;
         const total = yield communitiesCollection.countDocuments();
-        /* const communities = await communitiesCollection.find().skip(skip).limit(pageSize).toArray(); */
-        //aggregate the data to fetch the owner name
         const communities = yield communitiesCollection.aggregate([
             {
                 $lookup: {
@@ -93,6 +91,7 @@ const getAllcommunity = (req, res) => __awaiter(void 0, void 0, void 0, function
             },
             {
                 $project: {
+                    _id: 0,
                     id: 1,
                     name: 1,
                     slug: 1,
@@ -123,15 +122,137 @@ const getAllcommunity = (req, res) => __awaiter(void 0, void 0, void 0, function
 exports.getAllcommunity = getAllcommunity;
 const getAllCommunityMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { id } = req.params;
+        const { communityId } = req.params;
         const db = (0, db_1.getDatabase)();
         if (!db) {
             return res.status(500).json({ success: false, error: 'Database connection error' });
         }
         const communitiesCollection = db.collection('communities');
+        const membersCollection = db.collection('member');
+        const memberCommunity = yield membersCollection.find({ community: communityId });
+        // console.log(collection);
+        if (!memberCommunity) {
+            return res.status(404).json({
+                success: false,
+                error: 'Member not found in community'
+            });
+        }
+        const pageSize = 10;
+        const page = 1;
+        const skip = (page - 1) * pageSize;
+        const total = yield communitiesCollection.countDocuments();
+        const members = yield membersCollection.aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user',
+                    foreignField: 'id',
+                    as: 'user'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'roles',
+                    localField: 'role',
+                    foreignField: 'id',
+                    as: 'role'
+                }
+            },
+            {
+                $unwind: '$user'
+            },
+            {
+                $unwind: '$role'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    id: 1,
+                    community: 1,
+                    user: {
+                        id: '$user.id',
+                        name: '$user.name'
+                    },
+                    role: {
+                        id: '$role.id',
+                        name: '$role.name'
+                    },
+                    created_at: 1,
+                }
+            }
+        ]).skip(skip).limit(pageSize).toArray();
+        res.status(200).json({
+            success: true, content: {
+                meta: {
+                    total,
+                    page,
+                    pages: Math.ceil(total / pageSize)
+                }
+            },
+            data: members
+        });
     }
     catch (error) {
         res.status(500).json({ success: false, error: "Something went wrong" });
     }
 });
 exports.getAllCommunityMembers = getAllCommunityMembers;
+const getOwnedCommunity = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const db = (0, db_1.getDatabase)();
+        if (!db) {
+            return res.status(500).json({ success: false, error: 'Database connection error' });
+        }
+        const communitiesCollection = db.collection('communities');
+        const usersCollection = db.collection('users');
+        const checkIfOwnerExists = yield usersCollection.findOne({ email: req.user.email });
+        if (!checkIfOwnerExists) {
+            return res.status(409).json({ success: false, error: 'Owner does not exists' });
+        }
+        const pageSize = 10;
+        const page = 1;
+        const skip = (page - 1) * pageSize;
+        const total = yield communitiesCollection.countDocuments();
+        const communities = yield communitiesCollection.aggregate([
+            {
+                $match: { owner: checkIfOwnerExists.id }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'owner',
+                    foreignField: 'id',
+                    as: 'owner'
+                }
+            },
+            {
+                $unwind: '$owner'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    id: 1,
+                    name: 1,
+                    slug: 1,
+                    created_at: 1,
+                    updated_at: 1,
+                }
+            }
+        ]).skip(skip).limit(pageSize).toArray();
+        res.status(200).json({
+            success: true, content: {
+                meta: {
+                    total,
+                    page,
+                    pages: Math.ceil(total / pageSize)
+                }
+            },
+            data: communities
+        });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
+});
+exports.getOwnedCommunity = getOwnedCommunity;

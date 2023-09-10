@@ -29,7 +29,7 @@ export const community = async (req: Request, res: Response) => {
         if (!owner) {
             return res.status(409).json({ success: false, error: 'Owner does not exists' });
         }
-        community.id=generateId();
+        community.id = generateId();
         community.owner = owner.id;
         const result = await communitiesCollection.insertOne(community);
         if (result.insertedId) {
@@ -68,8 +68,6 @@ export const getAllcommunity = async (req: Request, res: Response) => {
         const page = 1;
         const skip = (page - 1) * pageSize;
         const total = await communitiesCollection.countDocuments();
-        /* const communities = await communitiesCollection.find().skip(skip).limit(pageSize).toArray(); */
-        //aggregate the data to fetch the owner name
         const communities = await communitiesCollection.aggregate([
             {
                 $lookup: {
@@ -84,6 +82,7 @@ export const getAllcommunity = async (req: Request, res: Response) => {
             },
             {
                 $project: {
+                    _id:0,
                     id: 1,
                     name: 1,
                     slug: 1,
@@ -115,17 +114,142 @@ export const getAllcommunity = async (req: Request, res: Response) => {
 
 export const getAllCommunityMembers = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
+        const { communityId } = req.params;
         const db = getDatabase();
         if (!db) {
             return res.status(500).json({ success: false, error: 'Database connection error' });
         }
         const communitiesCollection = db.collection('communities');
+        const membersCollection = db.collection('member');
 
-
+        const memberCommunity = await membersCollection.find({ community: communityId});
+        // console.log(collection);
+        if (!memberCommunity) {
+            return res.status(404).json({
+                success: false,
+                error: 'Member not found in community'
+            });
+        }
+        const pageSize = 10;
+        const page = 1;
+        const skip = (page - 1) * pageSize;
+        const total = await communitiesCollection.countDocuments();
+        const members = await membersCollection.aggregate([
+           
+            {
+                $lookup: {
+                    from: 'users', // Adjust to your actual collection name
+                    localField: 'user',
+                    foreignField: 'id',
+                    as: 'user'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'roles', 
+                    localField: 'role',
+                    foreignField: 'id',
+                    as: 'role'
+                }
+            },
+            {
+                $unwind: '$user'
+            },
+            {
+                $unwind: '$role'
+            },
+            {
+                $project: {
+                    _id:0,
+                    id: 1,
+                    community: 1,
+                    user: {
+                        id: '$user.id',
+                        name: '$user.name'
+                    },
+                    role: {
+                        id: '$role.id',
+                        name: '$role.name'
+                    },
+                    created_at: 1,
+                }
+            }
+        ]).skip(skip).limit(pageSize).toArray();
+        res.status(200).json({
+            success: true, content: {
+                meta: {
+                    total,
+                    page,
+                    pages: Math.ceil(total / pageSize)
+                }
+            },
+            data: members
+        });
     }
     catch (error) {
         res.status(500).json({ success: false, error: "Something went wrong" });
     }
 }
 
+export const getOwnedCommunity = async (req: Request, res: Response) => {
+    try {
+       
+        const db = getDatabase();
+        if (!db) {
+            return res.status(500).json({ success: false, error: 'Database connection error' });
+        }
+        const communitiesCollection = db.collection('communities');
+        const usersCollection = db.collection('users');
+        const checkIfOwnerExists = await usersCollection.findOne({ email: req.user.email });
+        
+        if (!checkIfOwnerExists) {
+            return res.status(409).json({ success: false, error: 'Owner does not exists' })
+        }
+        const pageSize = 10;
+        const page = 1;
+        const skip = (page - 1) * pageSize;
+        const total = await communitiesCollection.countDocuments();
+
+        const communities = await communitiesCollection.aggregate([
+            {
+                $match: { owner: checkIfOwnerExists.id }
+            },
+            {
+                $lookup: {
+                    from: 'users', // Adjust to your actual collection name
+                    localField: 'owner',
+                    foreignField: 'id',
+                    as: 'owner'
+                }
+            },
+            {
+                $unwind: '$owner'
+
+            },
+            {
+                $project: {
+                    _id:0,
+                    id: 1,
+                    name: 1,
+                    slug: 1,
+                    created_at: 1,
+                    updated_at: 1,
+                }
+            }
+        ]).skip(skip).limit(pageSize).toArray();
+        res.status(200).json({
+            success: true, content: {
+                meta: {
+                    total,
+                    page,
+                    pages: Math.ceil(total / pageSize)
+                }
+            },
+            data: communities
+        });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
+}

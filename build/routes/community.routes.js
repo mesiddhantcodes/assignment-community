@@ -34,4 +34,5 @@ router.post('/', jwt_1.verifyJWTMiddleware, communityController.community);
 router.get('/', jwt_1.verifyJWTMiddleware, communityController.getAllcommunity);
 // router.get('/:id', verifyJWTMiddleware, communityController.getcommunityBySlug);
 router.get('/:id/members', communityController.getAllCommunityMembers);
+router.get('/me/owner', jwt_1.verifyJWTMiddleware, communityController.getOwnedCommunity);
 exports.default = router;
