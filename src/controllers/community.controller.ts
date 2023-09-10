@@ -1,11 +1,17 @@
 import { Request, Response } from 'express';
 import { getDatabase } from '../utils/db';
-import Community from '../interfaces/Community';
+import Community, { validateCommunity } from '../interfaces/Community';
 import { generateUniqueSlug } from '../utils/slug';
+import { get } from 'http';
+import { generateId } from '../utils/snowflake';
 // import { getUserIdByName } from '../utils/authenticateJwt';
 export const community = async (req: Request, res: Response) => {
     try {
         const community: Community = req.body;
+        const errors = validateCommunity(community);
+        if (errors.length > 0) {
+            return res.status(400).json({ success: false, error: errors });
+        }
         const db = getDatabase();
         if (!db) {
             return res.status(500).json({ success: false, error: 'Database connection error' });
@@ -23,6 +29,7 @@ export const community = async (req: Request, res: Response) => {
         if (!owner) {
             return res.status(409).json({ success: false, error: 'Owner does not exists' });
         }
+        community.id=generateId();
         community.owner = owner.id;
         const result = await communitiesCollection.insertOne(community);
         if (result.insertedId) {
@@ -104,7 +111,21 @@ export const getAllcommunity = async (req: Request, res: Response) => {
     catch (error) {
         res.status(500).json({ success: false, error: "Something went wrong" });
     }
-
-
-
 }
+
+export const getAllCommunityMembers = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const db = getDatabase();
+        if (!db) {
+            return res.status(500).json({ success: false, error: 'Database connection error' });
+        }
+        const communitiesCollection = db.collection('communities');
+
+
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
+}
+

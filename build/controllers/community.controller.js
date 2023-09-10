@@ -9,13 +9,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllcommunity = exports.community = void 0;
+exports.getAllCommunityMembers = exports.getAllcommunity = exports.community = void 0;
 const db_1 = require("../utils/db");
+const Community_1 = require("../interfaces/Community");
 const slug_1 = require("../utils/slug");
+const snowflake_1 = require("../utils/snowflake");
 // import { getUserIdByName } from '../utils/authenticateJwt';
 const community = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const community = req.body;
+        const errors = (0, Community_1.validateCommunity)(community);
+        if (errors.length > 0) {
+            return res.status(400).json({ success: false, error: errors });
+        }
         const db = (0, db_1.getDatabase)();
         if (!db) {
             return res.status(500).json({ success: false, error: 'Database connection error' });
@@ -33,6 +39,7 @@ const community = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!owner) {
             return res.status(409).json({ success: false, error: 'Owner does not exists' });
         }
+        community.id = (0, snowflake_1.generateId)();
         community.owner = owner.id;
         const result = yield communitiesCollection.insertOne(community);
         if (result.insertedId) {
@@ -114,3 +121,17 @@ const getAllcommunity = (req, res) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.getAllcommunity = getAllcommunity;
+const getAllCommunityMembers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const db = (0, db_1.getDatabase)();
+        if (!db) {
+            return res.status(500).json({ success: false, error: 'Database connection error' });
+        }
+        const communitiesCollection = db.collection('communities');
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
+});
+exports.getAllCommunityMembers = getAllCommunityMembers;

@@ -35,7 +35,6 @@ const verifyJWTMiddleware = (req, res, next) => {
     }
     const user = (0, exports.verifyJWT)(token);
     if (!user) {
-        // console.log(token,user);
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     req.user = user;

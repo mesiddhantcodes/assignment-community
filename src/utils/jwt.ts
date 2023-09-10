@@ -28,14 +28,13 @@ export const verifyJWT = (token: string): User | null => {
 
 export const verifyJWTMiddleware = (req: any, res: any, next: any) => {
     const token = req.headers.authorization?.split(' ')[1];
-   
+
     if (!token) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     const user = verifyJWT(token);
-    
+
     if (!user) {
-        // console.log(token,user);
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
     req.user = user;

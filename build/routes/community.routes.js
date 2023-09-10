@@ -32,4 +32,6 @@ const jwt_1 = require("../utils/jwt");
 const router = express_1.default.Router();
 router.post('/', jwt_1.verifyJWTMiddleware, communityController.community);
 router.get('/', jwt_1.verifyJWTMiddleware, communityController.getAllcommunity);
+// router.get('/:id', verifyJWTMiddleware, communityController.getcommunityBySlug);
+router.get('/:id/members', communityController.getAllCommunityMembers);
 exports.default = router;

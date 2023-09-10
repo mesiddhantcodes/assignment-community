@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import authRoutes from './routes/auth.routes';
 import communityRoutes from './routes/community.routes';
-// import memberRoutes from './routes/member.routes';
+import memberRoutes from './routes/member.routes';
 import roleRoutes from './routes/role.routes'; 
 import { connectToDatabase } from './utils/db'
 const app = express();
@@ -16,7 +16,7 @@ connectToDatabase()
 // Routes
 app.use('/v1/auth', authRoutes);
 app.use('/v1/community', communityRoutes);
-// app.use('/v1/member', memberRoutes);
+app.use('/v1/member', memberRoutes);
 app.use('/v1/role', roleRoutes); 
 
 // Start server
