@@ -3,10 +3,7 @@ import { getDatabase } from '../utils/db';
 import { generateId } from '../utils/snowflake';
 import Member from '../interfaces/Member';
 
-
-
 export const addMember = async (req: Request, res: Response) => {
-    // const { communityId, userId, roleId } = req.body;
     const member: Member = req.body;
     const db = getDatabase();
     if (!db) {
@@ -27,7 +24,6 @@ export const addMember = async (req: Request, res: Response) => {
     if (checkIfMemberExists.id !== community.owner) {
         return res.status(401).json({ success: false, error: 'NOT_ALLOWED_ACCESS' });
     }
-
     member.id = generateId();
     const result = await memberCollection.insertOne({
         id: member.id,
@@ -36,7 +32,6 @@ export const addMember = async (req: Request, res: Response) => {
         role: member.role,
         created_at: new Date(),
     });
-
     if (!result.insertedId) {
         return res.status(500).json({ success: false, error: "Something went wrong" });
     }
@@ -57,21 +52,17 @@ export const addMember = async (req: Request, res: Response) => {
 export const removeMember = async (req: Request, res: Response) => {
     const userId = req.params;
     try {
-
         const db = getDatabase();
         if (!db) {
             return res.status(500).json({ success: false, error: 'Database connection error' });
         }
         const memberCollection = db.collection('member');
-        const usersCollection = db.collection('users');
-        const communitiesCollection = db.collection('communities');
         console.log(userId.id);
         const memberDetails = await memberCollection.findOne({ id: userId.id });
         console.log(memberDetails);
         if (!memberDetails) {
             return res.status(404).json({ success: false, error: 'Member not found' });
         }
-        
         const result = await memberCollection.aggregate([
             {
                 $match: { community: memberDetails.community },
@@ -116,7 +107,6 @@ export const removeMember = async (req: Request, res: Response) => {
                     ownerId: '$community.owner',
                     userId: '$user.id',
                     role: '$role.name',
-
                 },
             },
         ]).toArray();
@@ -124,26 +114,21 @@ export const removeMember = async (req: Request, res: Response) => {
         if (result.length === 0) {
             return res.status(404).json({ success: false, error: 'Member not found' });
         }
-
         const memberData = result[0];
         // console.log(memberData)
         const { ownerId, userId: memberId, role: role } = memberData;
         console.log(ownerId, memberId)
-        // Check if the requestor is the owner
         const requestorUserId = req.user.id;
 
         if (requestorUserId !== ownerId.id) {
             return res.status(401).json({ success: false, error: 'NOT_ALLOWED_ACCESS' });
         }
-
-        // Delete the member
         const deleteResult = await memberCollection.deleteOne({ id: userId.id });
 
         if (deleteResult.deletedCount === 0) {
             return res.status(404).json({ success: false, error: 'Member not found' });
         }
-
-        res.status(200).json({ success: true, });
+        res.status(200).json({ success: true });
 
     }
     catch (error) {

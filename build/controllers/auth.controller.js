@@ -61,7 +61,7 @@ const signup = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.signup = signup;
-// Signin controller
+// Signin api
 const signin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.body;
     const db = (0, db_1.getDatabase)();

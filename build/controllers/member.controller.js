@@ -13,7 +13,6 @@ exports.removeMember = exports.addMember = void 0;
 const db_1 = require("../utils/db");
 const snowflake_1 = require("../utils/snowflake");
 const addMember = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // const { communityId, userId, roleId } = req.body;
     const member = req.body;
     const db = (0, db_1.getDatabase)();
     if (!db) {
@@ -67,8 +66,6 @@ const removeMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             return res.status(500).json({ success: false, error: 'Database connection error' });
         }
         const memberCollection = db.collection('member');
-        const usersCollection = db.collection('users');
-        const communitiesCollection = db.collection('communities');
         console.log(userId.id);
         const memberDetails = yield memberCollection.findOne({ id: userId.id });
         console.log(memberDetails);
@@ -130,17 +127,15 @@ const removeMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         // console.log(memberData)
         const { ownerId, userId: memberId, role: role } = memberData;
         console.log(ownerId, memberId);
-        // Check if the requestor is the owner
         const requestorUserId = req.user.id;
         if (requestorUserId !== ownerId.id) {
             return res.status(401).json({ success: false, error: 'NOT_ALLOWED_ACCESS' });
         }
-        // Delete the member
         const deleteResult = yield memberCollection.deleteOne({ id: userId.id });
         if (deleteResult.deletedCount === 0) {
             return res.status(404).json({ success: false, error: 'Member not found' });
         }
-        res.status(200).json({ success: true, content: { data: deleteResult.deletedCount } });
+        res.status(200).json({ success: true });
     }
     catch (error) {
         console.error('Error:', error);

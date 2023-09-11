@@ -2,9 +2,8 @@ import { Request, Response } from 'express';
 import { getDatabase } from '../utils/db';
 import Community, { validateCommunity } from '../interfaces/Community';
 import { generateUniqueSlug } from '../utils/slug';
-import { get } from 'http';
 import { generateId } from '../utils/snowflake';
-// import { getUserIdByName } from '../utils/authenticateJwt';
+import { compareSync } from 'bcrypt';
 export const community = async (req: Request, res: Response) => {
     try {
         const community: Community = req.body;
@@ -50,7 +49,6 @@ export const community = async (req: Request, res: Response) => {
                 });
         } else {
             res.status(500).json({ success: false, error: "Something Went Wrong" });
-
         }
     } catch (error) {
         res.status(500).json({ success: false, error: "Something Went Wrong" });
@@ -82,7 +80,7 @@ export const getAllcommunity = async (req: Request, res: Response) => {
             },
             {
                 $project: {
-                    _id:0,
+                    _id: 0,
                     id: 1,
                     name: 1,
                     slug: 1,
@@ -95,7 +93,6 @@ export const getAllcommunity = async (req: Request, res: Response) => {
                 }
             }
         ]).skip(skip).limit(pageSize).toArray();
-
         res.status(200).json({
             success: true, content: {
                 meta: {
@@ -121,8 +118,7 @@ export const getAllCommunityMembers = async (req: Request, res: Response) => {
         }
         const communitiesCollection = db.collection('communities');
         const membersCollection = db.collection('member');
-
-        const memberCommunity = await membersCollection.find({ community: communityId});
+        const memberCommunity = await membersCollection.find({ community: communityId });
         // console.log(collection);
         if (!memberCommunity) {
             return res.status(404).json({
@@ -135,7 +131,6 @@ export const getAllCommunityMembers = async (req: Request, res: Response) => {
         const skip = (page - 1) * pageSize;
         const total = await communitiesCollection.countDocuments();
         const members = await membersCollection.aggregate([
-           
             {
                 $lookup: {
                     from: 'users', // Adjust to your actual collection name
@@ -146,7 +141,7 @@ export const getAllCommunityMembers = async (req: Request, res: Response) => {
             },
             {
                 $lookup: {
-                    from: 'roles', 
+                    from: 'roles',
                     localField: 'role',
                     foreignField: 'id',
                     as: 'role'
@@ -160,7 +155,7 @@ export const getAllCommunityMembers = async (req: Request, res: Response) => {
             },
             {
                 $project: {
-                    _id:0,
+                    _id: 0,
                     id: 1,
                     community: 1,
                     user: {
@@ -190,10 +185,8 @@ export const getAllCommunityMembers = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, error: "Something went wrong" });
     }
 }
-
 export const getOwnedCommunity = async (req: Request, res: Response) => {
     try {
-       
         const db = getDatabase();
         if (!db) {
             return res.status(500).json({ success: false, error: 'Database connection error' });
@@ -201,7 +194,7 @@ export const getOwnedCommunity = async (req: Request, res: Response) => {
         const communitiesCollection = db.collection('communities');
         const usersCollection = db.collection('users');
         const checkIfOwnerExists = await usersCollection.findOne({ email: req.user.email });
-        
+
         if (!checkIfOwnerExists) {
             return res.status(409).json({ success: false, error: 'Owner does not exists' })
         }
@@ -209,7 +202,6 @@ export const getOwnedCommunity = async (req: Request, res: Response) => {
         const page = 1;
         const skip = (page - 1) * pageSize;
         const total = await communitiesCollection.countDocuments();
-
         const communities = await communitiesCollection.aggregate([
             {
                 $match: { owner: checkIfOwnerExists.id }
@@ -224,11 +216,10 @@ export const getOwnedCommunity = async (req: Request, res: Response) => {
             },
             {
                 $unwind: '$owner'
-
             },
             {
                 $project: {
-                    _id:0,
+                    _id: 0,
                     id: 1,
                     name: 1,
                     slug: 1,
@@ -252,4 +243,79 @@ export const getOwnedCommunity = async (req: Request, res: Response) => {
         console.log(error);
         res.status(500).json({ success: false, error: "Something went wrong" });
     }
+}
+
+export const getJoinedCommunity = async (req: Request, res: Response) => {
+    // const memberId=req.user.id;
+    try {
+        const db = getDatabase();
+        if (!db) {
+            return res.status(500).json({ success: false, error: 'Database connection error' });
+        }
+        const usersCollection = db.collection('users');
+        const signedInUser = await usersCollection.findOne({ email: req.user.email });
+        if (!signedInUser) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        const userId = signedInUser.id;
+        const memberCollection = db.collection('member');
+        const communitiesCollection = db.collection('communities');
+        const userMember = await memberCollection.find({ user: userId }).toArray();
+        if (!userMember) {
+            return res.status(404).json({ success: false, error: 'Member not found' });
+        }
+        const pageSize = 10;
+        const page = 1;
+        const skip = (page - 1) * pageSize;
+        const total = await memberCollection.countDocuments();
+        const communities = await communitiesCollection.aggregate([
+            {
+                $match: { id: { $in: userMember.map((member: any) => member.community) } }
+            },
+            {
+                $lookup: {
+
+                    from: 'users', // Adjust to your actual collection name
+                    localField: 'owner',
+                    foreignField: 'id',
+                    as: 'owner'
+
+                }
+            },
+            {
+                $unwind: '$owner'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    id: 1,
+                    name: 1,
+                    slug: 1,
+                    owner: {
+                        id: '$owner.id',
+                        name: '$owner.name',
+                    },
+                    created_at: 1,
+                    updated_at: 1,
+                }
+            }
+        ]).skip(skip).limit(pageSize).toArray();
+        res.status(200).json({
+            success: true, content: {
+                meta: {
+                    total,
+                    page,
+                    pages: Math.ceil(total / pageSize)
+                },
+                data: communities
+            }
+
+        });
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: "Something went wrong" });
+    }
+
+
 }

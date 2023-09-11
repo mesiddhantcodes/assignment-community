@@ -8,5 +8,5 @@ router.get('/', verifyJWTMiddleware, communityController.getAllcommunity);
 // router.get('/:id', verifyJWTMiddleware, communityController.getcommunityBySlug);
 router.get('/:id/members', communityController.getAllCommunityMembers);
 router.get('/me/owner',verifyJWTMiddleware,communityController.getOwnedCommunity);
-
+router.get('/me/member',verifyJWTMiddleware,communityController.getJoinedCommunity);
 export default router;

@@ -43,13 +43,12 @@ export const signup = async (req: Request, res: Response) => {
         } else {
             res.status(500).json({ success: false, error: "Something Went Wrong" });
         }
-
     } catch (error) {
         res.status(500).json({ success: false, error: "Something Went Wrong" });
     }
 };
 
-// Signin controller
+// Signin api
 export const signin = async (req: Request, res: Response) => {
     const user: User = req.body;
     const db = getDatabase();
@@ -70,7 +69,6 @@ export const signin = async (req: Request, res: Response) => {
                     name: checkIfUserExists.name,
                     email: checkIfUserExists.email,
                     created_at: checkIfUserExists.created_at,
-                   
                 },
                 meta: {
                     access_token,
@@ -78,10 +76,7 @@ export const signin = async (req: Request, res: Response) => {
             }
         });
     }
-
 };
-
-
 
 export const me = async (req: Request, res: Response) => {
     const email = req.user.email;
