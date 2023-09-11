@@ -1,7 +1,4 @@
 # assignment-community
-# Project Name
-
-Short description or tagline for your project.
 
 ## Table of Contents
 
