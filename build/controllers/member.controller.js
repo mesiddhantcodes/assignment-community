@@ -68,7 +68,7 @@ const removeMember = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const memberCollection = db.collection('member');
         console.log(userId.id);
         const memberDetails = yield memberCollection.findOne({ id: userId.id });
-        console.log(memberDetails);
+        // console.log(memberDetails);
         if (!memberDetails) {
             return res.status(404).json({ success: false, error: 'Member not found' });
         }

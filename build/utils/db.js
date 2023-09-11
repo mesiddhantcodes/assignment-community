@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDatabase = exports.connectToDatabase = void 0;
 const mongodb_1 = require("mongodb");
-const mongoURI = 'mongodb://0.0.0.0:27017/community-backend';
+const mongoURI = 'mongodb+srv://user-community:sidd123@cluster0.phbuxbe.mongodb.net/community-backend?retryWrites=true&w=majority';
 const client = new mongodb_1.MongoClient(mongoURI);
 let db = null;
 function connectToDatabase() {

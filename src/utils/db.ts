@@ -1,5 +1,5 @@
 import { MongoClient, Db } from 'mongodb';
-const mongoURI = 'mongodb://0.0.0.0:27017/community-backend';
+const mongoURI = 'mongodb+srv://user-community:sidd123@cluster0.phbuxbe.mongodb.net/community-backend?retryWrites=true&w=majority';
 const client = new MongoClient(mongoURI);
 
 let db: Db | null = null;
