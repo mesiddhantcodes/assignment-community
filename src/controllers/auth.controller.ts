@@ -61,9 +61,9 @@ export const signin = async (req: Request, res: Response) => {
     if (!checkIfUserExists) {
         return res.status(400).json({ success: false, error: 'User dose not exists' });
     } else {
-       
-        const compare= await bcrypt.compare(user.password,checkIfUserExists.password);
-        if(compare===false){
+
+        const compare = await bcrypt.compare(user.password, checkIfUserExists.password);
+        if (compare === false) {
             return res.status(400).json({ success: false, error: 'Password is incorrect' });
         }
         const access_token = generateJWT(user);
