@@ -4,6 +4,7 @@ import { getDatabase } from '../utils/db';
 import { generateId } from '../utils/snowflake';
 import { generateJWT } from '../utils/jwt';
 import { hashPassword } from '../utils/bcrypt';
+import * as bcrypt from 'bcrypt';
 export const signup = async (req: Request, res: Response) => {
     try {
         const user: User = req.body;
@@ -60,6 +61,11 @@ export const signin = async (req: Request, res: Response) => {
     if (!checkIfUserExists) {
         return res.status(400).json({ success: false, error: 'User dose not exists' });
     } else {
+       
+        const compare= await bcrypt.compare(user.password,checkIfUserExists.password);
+        if(compare===false){
+            return res.status(400).json({ success: false, error: 'Password is incorrect' });
+        }
         const access_token = generateJWT(user);
         res.status(200).json({
             status: true,
