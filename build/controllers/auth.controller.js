@@ -98,8 +98,7 @@ const signin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return res.status(400).json({ success: false, error: 'User dose not exists' });
     }
     else {
-        const pass = user.password;
-        const compare = yield bcrypt.compare(pass, checkIfUserExists.password);
+        const compare = yield bcrypt.compare(user.password, checkIfUserExists.password);
         if (compare === false) {
             return res.status(400).json({ success: false, error: 'Password is incorrect' });
         }
